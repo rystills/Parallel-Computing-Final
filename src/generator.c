@@ -3,9 +3,18 @@
 #include <math.h>
 #include <stdbool.h>
 
-#define boardSize 16  // size of both board dimensions
+#define boardSize 9  // size of both board dimensions
 int regionSize;
 int** board;
+
+/**
+ * return a random int between min (inclusive) and max (inclusive)
+ * @param min: the lowest (inclusive) value we should be able to generate
+ * @param max: the highest (inclusive) value we should be able to generate
+ */
+int randInt(int min, int max) {
+	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
+}
 
 /**
  * initialize the board to a zeroed 2-dimensional array of boardSize x boardSize
@@ -21,6 +30,18 @@ void initBoard() {
 }
 
 /**
+ * replace all occurrences of digit a on the board with digit b and vice versa
+ */
+void swapDigits(int a, int b) {
+	for (int i = 0; i < boardSize; ++i) {
+		for (int r = 0; r < boardSize; ++r) {
+			if (board[i][r] == a) board[i][r] = b;
+			else if (board[i][r] == b) board[i][r] = a;
+		}
+	}
+}
+
+/**
  * generate a boardSize x boardSize board
  * @param isEvil: whether the board should force only one solution (true) or allow for potentially multiple solutions (false)
  */
@@ -31,6 +52,7 @@ void generateBoard(bool isEvil) {
 			board[i][r] = (r + i*regionSize) % boardSize + 1;
 		}
 	}
+
 	// now shift regions horizontally by their region number
 	for (int i = 1; i < regionSize; ++i) {
 		for (int k = 0; k < regionSize; ++k) {
@@ -44,6 +66,15 @@ void generateBoard(bool isEvil) {
 				}
 			}
 		}
+	}
+
+	// we now have a valid sudoku board; time to make it unique
+	// randomly swap boardSize^2 number pairs
+	for (int i = 0; i < boardSize*boardSize; ++i) {
+		int r1 = randInt(1,boardSize);
+		int r2 = r1;
+		while (r2 == r1) r2 = randInt(1,boardSize);
+		swapDigits(r1, r2);
 	}
 
 }
