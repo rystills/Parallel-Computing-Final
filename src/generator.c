@@ -102,7 +102,7 @@ void generateBoard(bool isEvil) {
 	}
 
 	// we now have a valid sudoku board; time to make it unique
-	// randomly swap boardSize^2 number pairs
+	// randomly swap boardSize^2 number of number pairs
 	for (int i = 0; i < boardSize*boardSize; ++i) {
 		int r1 = randInt(1,boardSize);
 		int r2 = r1;
@@ -110,8 +110,8 @@ void generateBoard(bool isEvil) {
 		swapDigits(r1, r2);
 	}
 
-	// randomly swap boardSize row and column pairs within regions
-	for (int i = 0; i < boardSize; ++i) {
+	// randomly swap boardSize^2 number of row and column pairs within regions
+	for (int i = 0; i < boardSize*boardSize; ++i) {
 		// swap rows
 		int r1 = randInt(0,boardSize-1);
 		int r2 = r1;
@@ -124,6 +124,22 @@ void generateBoard(bool isEvil) {
 		while (c2 == c1) c2 = randInt(c1/regionSize*regionSize, c1/regionSize*regionSize + regionSize-1);
 		swapCols(c1,c2);
 
+	}
+
+	//randomly swap boardSize number of regionSize row and column groups
+	for (int i = 0; i < boardSize; ++i) {
+		int rr1 = randInt(0,regionSize-1);
+		int rr2 = rr1;
+		while (rr2 == rr1) rr2 = randInt(0,regionSize-1);
+
+		int cr1 = randInt(0,regionSize-1);
+		int cr2 = cr1;
+		while (cr2 == cr1) cr2 = randInt(0,regionSize-1);
+
+		for (int r = 0; r < regionSize; ++r) {
+			swapRows(rr1*regionSize+r, rr2*regionSize+r);
+			swapCols(cr1*regionSize+r, cr2*regionSize+r);
+		}
 	}
 }
 
@@ -151,9 +167,9 @@ bool isSolved() {
 				if ((board[i][k] == board[i][r] && k != r) || (board[k][r] == board[i][r] && k != i)) return false;
 
 	// check for region duplicates
+	int regionVals[boardSize];
 	for (int i = 0; i < regionSize; ++i) {
 		for (int r = 0; r < regionSize; ++r) {
-			int regionVals[boardSize];
 			for (int j = 0; j < regionSize; ++j) {
 				for (int k = 0; k < regionSize; ++k) {
 					insertInPlace(regionVals, board[i*regionSize + j][r*regionSize + k], j*regionSize+k);
