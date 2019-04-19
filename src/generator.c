@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define boardSize 9  // size of both board dimensions
 int regionSize;
@@ -34,11 +35,42 @@ void initBoard() {
  * replace all occurrences of digit a on the board with digit b and vice versa
  */
 void swapDigits(int a, int b) {
+	if (a == b) return;
 	for (int i = 0; i < boardSize; ++i) {
 		for (int r = 0; r < boardSize; ++r) {
 			if (board[i][r] == a) board[i][r] = b;
 			else if (board[i][r] == b) board[i][r] = a;
 		}
+	}
+}
+
+/**
+ * swap two board rows
+ * @param r1: the first row to swap
+ * @param r2: the second row to swap
+ */
+void swapRows(int r1, int r2) {
+	if (r1 == r2) return;
+	int swp;
+	for (int i = 0; i < boardSize; ++i) {
+		swp = board[r1][i];
+		board[r1][i] = board[r2][i];
+		board[r2][i] = swp;
+	}
+}
+
+/**
+ * swap two board columns
+ * @param c1: the first column to swap
+ * @param c2: the second column to swap
+ */
+void swapCols(int c1, int c2) {
+	if (c1 == c2) return;
+	int swp;
+	for (int i = 0; i < boardSize; ++i) {
+		swp = board[i][c1];
+		board[i][c1] = board[i][c2];
+		board[i][c2] = swp;
 	}
 }
 
@@ -78,6 +110,21 @@ void generateBoard(bool isEvil) {
 		swapDigits(r1, r2);
 	}
 
+	// randomly swap boardSize row and column pairs within regions
+	for (int i = 0; i < boardSize; ++i) {
+		// swap rows
+		int r1 = randInt(0,boardSize-1);
+		int r2 = r1;
+		while (r2 == r1) r2 = randInt(r1/regionSize*regionSize, r1/regionSize*regionSize + regionSize-1);
+		swapRows(r1,r2);
+
+		// swap columns
+		int c1 = randInt(0,boardSize-1);
+		int c2 = c1;
+		while (c2 == c1) c2 = randInt(c1/regionSize*regionSize, c1/regionSize*regionSize + regionSize-1);
+		swapCols(c1,c2);
+
+	}
 }
 
 /**
@@ -102,6 +149,7 @@ bool isSolved() {
 		for (int r = 0; r < boardSize; ++r)
 			for (int k = 0; k < boardSize; ++k)
 				if ((board[i][k] == board[i][r] && k != r) || (board[k][r] == board[i][r] && k != i)) return false;
+
 	// check for region duplicates
 	for (int i = 0; i < regionSize; ++i) {
 		for (int r = 0; r < regionSize; ++r) {
@@ -142,6 +190,7 @@ void printBoard() {
 }
 
 int main(void) {
+	srand(time(0));
 	regionSize = sqrt(boardSize);
 	initBoard();
 	generateBoard(true);
