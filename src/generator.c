@@ -4,7 +4,8 @@
 #include <stdbool.h>
 #include <time.h>
 
-#define boardSize 9  // size of both board dimensions
+#define boardSize 16  // size of both board dimensions
+#define removePercent 70  // what percentage of cells to remove for non-evil puzzles
 int regionSize;
 int** board;
 
@@ -29,6 +30,69 @@ void initBoard() {
 			board[i][r] = 0;
 		}
 	}
+}
+
+/**
+ * output the board in ascii form
+ */
+void printBoard() {
+	int boardSizeDigits = log10(boardSize) + 1;
+	for (int i = 0; i < boardSize; ++i) {
+		putchar('[');
+		for (int r = 0; r < boardSize; ++r) {
+			// draw blank
+			if (board[i][r] == 0)
+				for (int j = 0; j < boardSizeDigits; ++j) putchar(' ');
+			else {
+				// draw given
+				int curDigits = log10(board[i][r]) + 1;
+				for (int j = 0; j < boardSizeDigits - curDigits; ++j) putchar(' ');
+				printf("%d", board[i][r]);
+			}
+			if ((r+1)%regionSize == 0)
+				printf(r == boardSize-1 ? "]" : "] [");
+			else
+				putchar('|');
+		}
+		putchar('\n');
+		if ((i+1)%regionSize == 0 && i != boardSize-1) {
+			for (int r = 0; r < (boardSizeDigits+1)*(boardSize+2) + 1; ++r) putchar('-');
+			putchar('\n');
+		}
+	}
+}
+
+void insertInPlace(int *arr, int newVal, int arrLen) {
+	int i;
+	for (i=arrLen-1; i >= 0  && arr[i] > newVal; --i) arr[i+1] = arr[i];
+	arr[i+1] = newVal;
+}
+
+/**
+ * determine whether or not the board is in a solved state (adheres to all sudoku rules)
+ * @returns: whether the board is solved (true) or unsolved (false)
+ */
+bool isSolved() {
+	// check for row/col duplicates
+	for (int i = 0; i < boardSize; ++i)
+		for (int r = 0; r < boardSize; ++r)
+			for (int k = 0; k < boardSize; ++k)
+				if ((board[i][k] == board[i][r] && k != r) || (board[k][r] == board[i][r] && k != i)) return false;
+
+	// check for region duplicates
+	int regionVals[boardSize];
+	for (int i = 0; i < regionSize; ++i) {
+		for (int r = 0; r < regionSize; ++r) {
+			for (int j = 0; j < regionSize; ++j) {
+				for (int k = 0; k < regionSize; ++k) {
+					insertInPlace(regionVals, board[i*regionSize + j][r*regionSize + k], j*regionSize+k);
+				}
+			}
+			for (int i = 1; i < boardSize; ++i)
+				if (regionVals[i] != regionVals[i-1]+1) return false;
+		}
+	}
+	return true;
 }
 
 /**
@@ -126,7 +190,7 @@ void generateBoard(bool isEvil) {
 
 	}
 
-	//randomly swap boardSize number of regionSize row and column groups
+	// randomly swap boardSize number of regionSize row and column groups
 	for (int i = 0; i < boardSize; ++i) {
 		int rr1 = randInt(0,regionSize-1);
 		int rr2 = rr1;
@@ -141,6 +205,31 @@ void generateBoard(bool isEvil) {
 			swapCols(cr1*regionSize+r, cr2*regionSize+r);
 		}
 	}
+
+	puts("finished board:");
+	printBoard();
+	puts(isSolved() ? "board passed validation test" : "board failed validation test");
+
+	// remove some cell values
+	if (isEvil) {
+
+	}
+	else {
+		// remove cells at random until we reach the defined threshold
+		int removeNum = boardSize*boardSize * (removePercent/100.0f);
+		printf("removing %d cells (%d%% removal threshold)\n",removeNum, removePercent);
+		for (int i = 0; i < removeNum; ++i) {
+			int row = randInt(0,boardSize-1);
+			int col = randInt(0,boardSize-1);
+			if (board[row][col] == 0) {
+				--i;
+				continue;
+			}
+			board[row][col] = 0;
+		}
+	}
+	puts("stripped board:");
+	printBoard();
 }
 
 /**
@@ -149,68 +238,11 @@ void generateBoard(bool isEvil) {
  * @param newVal: the value to insert into the array
  * @param arrLen: the number of elements currently stored in the array (we assume at least 1 additional slot is available for insertion)
  */
-void insertInPlace(int *arr, int newVal, int arrLen) {
-	int i;
-	for (i=arrLen-1; i >= 0  && arr[i] > newVal; --i) arr[i+1] = arr[i];
-	arr[i+1] = newVal;
-}
-
-/**
- * determine whether or not the board is in a solved state (adheres to all sudoku rules)
- * @returns: whether the board is solved (true) or unsolved (false)
- */
-bool isSolved() {
-	// check for row/col duplicates
-	for (int i = 0; i < boardSize; ++i)
-		for (int r = 0; r < boardSize; ++r)
-			for (int k = 0; k < boardSize; ++k)
-				if ((board[i][k] == board[i][r] && k != r) || (board[k][r] == board[i][r] && k != i)) return false;
-
-	// check for region duplicates
-	int regionVals[boardSize];
-	for (int i = 0; i < regionSize; ++i) {
-		for (int r = 0; r < regionSize; ++r) {
-			for (int j = 0; j < regionSize; ++j) {
-				for (int k = 0; k < regionSize; ++k) {
-					insertInPlace(regionVals, board[i*regionSize + j][r*regionSize + k], j*regionSize+k);
-				}
-			}
-			for (int i = 1; i < boardSize; ++i)
-				if (regionVals[i] != regionVals[i-1]+1) return false;
-		}
-	}
-	return true;
-}
-
-/**
- * output the board in ascii form
- */
-void printBoard() {
-	int boardSizeDigits = log10(boardSize) + 1;
-	for (int i = 0; i < boardSize; ++i) {
-		putchar('|');
-		for (int r = 0; r < boardSize; ++r) {
-			// draw blank
-			if (board[i][r] == -1)
-				for (int j = 0; j < boardSizeDigits; ++j) putchar(' ');
-			else {
-				// draw given
-				int curDigits = log10(board[i][r]) + 1;
-				for (int j = 0; j < boardSizeDigits - curDigits; ++j) putchar(' ');
-				printf("%d", board[i][r]);
-			}
-			putchar('|');
-		}
-		putchar('\n');
-	}
-}
 
 int main(void) {
 	srand(time(0));
 	regionSize = sqrt(boardSize);
 	initBoard();
-	generateBoard(true);
-	printBoard();
-	puts(isSolved() ? "solved" : "unsolved");
+	generateBoard(false);
 	return EXIT_SUCCESS;
 }
