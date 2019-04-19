@@ -8,9 +8,10 @@ int regionSize;
 int** board;
 
 /**
- * return a random int between min (inclusive) and max (inclusive)
+ * generate and return a random integer between min (inclusive) and max (inclusive)
  * @param min: the lowest (inclusive) value we should be able to generate
  * @param max: the highest (inclusive) value we should be able to generate
+ * @returns: a random integer between min (inclusive) and max (inclusive)
  */
 int randInt(int min, int max) {
 	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
@@ -80,6 +81,44 @@ void generateBoard(bool isEvil) {
 }
 
 /**
+ * insert an integer in place into a sorted integer array
+ * @param arr: the array in which to insert the specified value
+ * @param newVal: the value to insert into the array
+ * @param arrLen: the number of elements currently stored in the array (we assume at least 1 additional slot is available for insertion)
+ */
+void insertInPlace(int *arr, int newVal, int arrLen) {
+	int i;
+	for (i=arrLen-1; i >= 0  && arr[i] > newVal; --i) arr[i+1] = arr[i];
+	arr[i+1] = newVal;
+}
+
+/**
+ * determine whether or not the board is in a solved state (adheres to all sudoku rules)
+ * @returns: whether the board is solved (true) or unsolved (false)
+ */
+bool isSolved() {
+	// check for row/col duplicates
+	for (int i = 0; i < boardSize; ++i)
+		for (int r = 0; r < boardSize; ++r)
+			for (int k = 0; k < boardSize; ++k)
+				if ((board[i][k] == board[i][r] && k != r) || (board[k][r] == board[i][r] && k != i)) return false;
+	// check for region duplicates
+	for (int i = 0; i < regionSize; ++i) {
+		for (int r = 0; r < regionSize; ++r) {
+			int regionVals[boardSize];
+			for (int j = 0; j < regionSize; ++j) {
+				for (int k = 0; k < regionSize; ++k) {
+					insertInPlace(regionVals, board[i*regionSize + j][r*regionSize + k], j*regionSize+k);
+				}
+			}
+			for (int i = 1; i < boardSize; ++i)
+				if (regionVals[i] != regionVals[i-1]+1) return false;
+		}
+	}
+	return true;
+}
+
+/**
  * output the board in ascii form
  */
 void printBoard() {
@@ -107,5 +146,6 @@ int main(void) {
 	initBoard();
 	generateBoard(true);
 	printBoard();
+	puts(isSolved() ? "solved" : "unsolved");
 	return EXIT_SUCCESS;
 }
