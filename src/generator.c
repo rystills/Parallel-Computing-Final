@@ -80,7 +80,7 @@ void insertInPlace(int *arr, int newVal, int arrLen) {
  * @param iBoard: 2d array containing the board data
  * @returns: whether the board is solved (true) or unsolved (false)
  */
-bool isSolved(int** iBoard) {
+bool boardIsSolved(int** iBoard) {
 	// check for row/col duplicates
 	for (int i = 0; i < boardSize; ++i)
 		for (int r = 0; r < boardSize; ++r)
@@ -129,15 +129,15 @@ bool cellIsValid(int row, int col, int** iBoard) {
 /**
  * determine whether or not the board contains a value in every cell
  * @param iBoard: 2d array containing the board data
- * @returns: whether the board contains a value in every cell (true) or not (false)
+ * @returns: the location of the first unfilled cell (in the form row*boardSize + col), or -1 if all cells are filled
  */
-bool boardIsFilled(int** iBoard) {
+int boardIsFilled(int** iBoard) {
 	for (int i = 0; i < boardSize; ++i) {
 		for (int r = 0; r < boardSize; ++r) {
-			if (iBoard[i][r] == 0) return false;
+			if (iBoard[i][r] == 0) return i*boardSize + r;
 		}
 	}
-	return true;
+	return -1;
 }
 
 /**
@@ -251,9 +251,9 @@ void generateBoard(bool isEvil) {
 		}
 	}
 
-	puts("finished board:");
+	puts("Finished board:");
 	printBoard();
-	puts(isSolved(board) ? "board passed validation test" : "board failed validation test");
+	puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
 
 	// remove some cell values
 	if (isEvil) {
@@ -261,8 +261,8 @@ void generateBoard(bool isEvil) {
 	}
 	else {
 		// remove cells at random until we reach the defined threshold
-		int removeNum = boardSize*boardSize * (removePercent/100.0f);
-		printf("removing %d cells (%d%% removal threshold)\n",removeNum, removePercent);
+		int removeNum = 1;//boardSize*boardSize * (removePercent/100.0f);
+		printf("Removing %d cells (%d%% removal threshold)\n",removeNum, removePercent);
 		for (int i = 0; i < removeNum; ++i) {
 			int row = randInt(0,boardSize-1);
 			int col = randInt(0,boardSize-1);
@@ -273,7 +273,7 @@ void generateBoard(bool isEvil) {
 			board[row][col] = 0;
 		}
 	}
-	puts("stripped board:");
+	puts("Stripped board:");
 	printBoard();
 }
 
@@ -281,7 +281,13 @@ int main(void) {
 	srand(time(0));
 	regionSize = sqrt(boardSize);
 	initBoard();
+	puts("-----Generating board-----");
 	generateBoard(false);
-	serialBruteForceSolver();
+	puts("\n-----Solving Board-----");
+	board = serialBruteForceSolver(board);
+	puts("Solved board:");
+	printBoard();
+	puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
+
 	return EXIT_SUCCESS;
 }
