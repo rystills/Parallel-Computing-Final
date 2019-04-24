@@ -261,7 +261,7 @@ void generateBoard(bool isEvil) {
 	}
 	else {
 		// remove cells at random until we reach the defined threshold
-		int removeNum = 1;//boardSize*boardSize * (removePercent/100.0f);
+		int removeNum = boardSize*boardSize * (removePercent/100.0f);
 		printf("Removing %d cells (%d%% removal threshold)\n",removeNum, removePercent);
 		for (int i = 0; i < removeNum; ++i) {
 			int row = randInt(0,boardSize-1);
@@ -282,8 +282,10 @@ int main(void) {
 	regionSize = sqrt(boardSize);
 	initBoard();
 	puts("-----Generating board-----");
+	fflush(stdout);
 	generateBoard(false);
 	puts("\n-----Solving Board-----");
+	fflush(stdout);
 	board = serialBruteForceSolver(board);
 	puts("Solved board:");
 	printBoard();

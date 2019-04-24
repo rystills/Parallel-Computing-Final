@@ -7,8 +7,27 @@ bool boardIsSolved(int** iBoard);
 bool cellIsValid(int row, int col, int** iBoard);
 int boardIsFilled(int** iBoard);
 
-void serialBruteForceSolverInternal() {
+/**
+ * core recursive internal function for serial brute force solver; recursively fills in cell values
+ * @param iBoard: 2d array containing the board data
+ * @returns: whether the current board is solved (true) or not (false)
+ */
+bool serialBruteForceSolverInternal(int** iBoard) {
+	// base case: board is solved
+	if (boardIsSolved(iBoard)) return true;
 
+	// get location of unfilled cell
+	int missingPos = boardIsFilled(iBoard);
+	if (missingPos == -1) return false;
+	int row = missingPos/boardSize, col = missingPos%boardSize;
+
+	// recursively iterate through possible values for unfilled cell
+	for (int i = 1; i <= boardSize; ++i) {
+		iBoard[row][col] = i;
+		if (cellIsValid(row,col,iBoard) && serialBruteForceSolverInternal(iBoard)) return true;
+	}
+	iBoard[row][col] = 0;
+	return false;
 }
 
 /**
@@ -16,12 +35,6 @@ void serialBruteForceSolverInternal() {
  * @param iBoard: 2d array containing the board data
  */
 int** serialBruteForceSolver(int** iBoard) {
-	int missingPos = boardIsFilled(iBoard);
-	if (missingPos == -1) return iBoard;
-	int row = missingPos/boardSize, col = missingPos%boardSize;
-	for (int i = 0; i < boardSize; ++i) {
-		iBoard[row][col] = i+1;
-		if (boardIsSolved(iBoard)) break;
-	}
+	serialBruteForceSolverInternal(iBoard);
 	return iBoard;
 }
