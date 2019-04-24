@@ -3,9 +3,10 @@
 #include <math.h>
 #include <stdbool.h>
 #include <time.h>
+#include "solver.h"
 
-#define boardSize 16  // size of both board dimensions
-#define removePercent 70  // what percentage of cells to remove for non-evil puzzles
+const int boardSize = 16;  // size of both board dimensions
+const int removePercent = 70;  // what percentage of cells to remove for non-evil puzzles
 int regionSize;
 int** board;
 
@@ -62,6 +63,12 @@ void printBoard() {
 	}
 }
 
+/**
+ * insert an integer in place into a sorted integer array
+ * @param arr: the array in which to insert the specified value
+ * @param newVal: the value to insert into the array
+ * @param arrLen: the number of elements currently stored in the array (we assume at least 1 additional slot is available for insertion)
+ */
 void insertInPlace(int *arr, int newVal, int arrLen) {
 	int i;
 	for (i=arrLen-1; i >= 0  && arr[i] > newVal; --i) arr[i+1] = arr[i];
@@ -70,14 +77,15 @@ void insertInPlace(int *arr, int newVal, int arrLen) {
 
 /**
  * determine whether or not the board is in a solved state (adheres to all sudoku rules)
+ * @param iBoard: 2d array containing the board data
  * @returns: whether the board is solved (true) or unsolved (false)
  */
-bool isSolved() {
+bool isSolved(int** iBoard) {
 	// check for row/col duplicates
 	for (int i = 0; i < boardSize; ++i)
 		for (int r = 0; r < boardSize; ++r)
 			for (int k = 0; k < boardSize; ++k)
-				if ((board[i][k] == board[i][r] && k != r) || (board[k][r] == board[i][r] && k != i)) return false;
+				if ((iBoard[i][k] == iBoard[i][r] && k != r) || (iBoard[k][r] == iBoard[i][r] && k != i)) return false;
 
 	// check for region duplicates
 	int regionVals[boardSize];
@@ -85,11 +93,48 @@ bool isSolved() {
 		for (int r = 0; r < regionSize; ++r) {
 			for (int j = 0; j < regionSize; ++j) {
 				for (int k = 0; k < regionSize; ++k) {
-					insertInPlace(regionVals, board[i*regionSize + j][r*regionSize + k], j*regionSize+k);
+					insertInPlace(regionVals, iBoard[i*regionSize + j][r*regionSize + k], j*regionSize+k);
 				}
 			}
 			for (int i = 1; i < boardSize; ++i)
 				if (regionVals[i] != regionVals[i-1]+1) return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * determine whether or not a single cell on the board adheres to the sudoku rules
+ * @param row: the row of the cell we wish to check for validity
+ * @param col: the column of the cell we wish to check for validity
+ * @param iBoard: 2d array containing the board data
+ * @returns: whether the cell at iBoard[row][col] is valid (true) or not (false)
+ */
+bool cellIsValid(int row, int col, int** iBoard) {
+	// check for row/col duplicates
+	for (int k = 0; k < boardSize; ++k)
+		if ((iBoard[row][k] == iBoard[row][col] && k != col) || (iBoard[k][col] == iBoard[row][col] && k != row)) return false;
+
+	//check for region duplicates
+	int regionRow = row-(row%regionSize);
+	int regionCol = col-(col%regionSize);
+	for (int i = 0; i < regionSize; ++i) {
+		for (int r = 0; r < regionSize; ++r) {
+			if (iBoard[regionRow + i][regionCol + r] == iBoard[row][col] && !(regionRow + i == row && regionCol + r == col)) return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * determine whether or not the board contains a value in every cell
+ * @param iBoard: 2d array containing the board data
+ * @returns: whether the board contains a value in every cell (true) or not (false)
+ */
+bool boardIsFilled(int** iBoard) {
+	for (int i = 0; i < boardSize; ++i) {
+		for (int r = 0; r < boardSize; ++r) {
+			if (iBoard[i][r] == 0) return false;
 		}
 	}
 	return true;
@@ -208,7 +253,7 @@ void generateBoard(bool isEvil) {
 
 	puts("finished board:");
 	printBoard();
-	puts(isSolved() ? "board passed validation test" : "board failed validation test");
+	puts(isSolved(board) ? "board passed validation test" : "board failed validation test");
 
 	// remove some cell values
 	if (isEvil) {
@@ -232,17 +277,11 @@ void generateBoard(bool isEvil) {
 	printBoard();
 }
 
-/**
- * insert an integer in place into a sorted integer array
- * @param arr: the array in which to insert the specified value
- * @param newVal: the value to insert into the array
- * @param arrLen: the number of elements currently stored in the array (we assume at least 1 additional slot is available for insertion)
- */
-
 int main(void) {
 	srand(time(0));
 	regionSize = sqrt(boardSize);
 	initBoard();
 	generateBoard(false);
+	serialBruteForceSolver();
 	return EXIT_SUCCESS;
 }
