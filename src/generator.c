@@ -2,22 +2,28 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
-#include <sys/time.h>
+#include <time.h>
+#include <mpi.h>
 #include "solver.h"
 
+// #define BGQ 1 // when running BG/Q, comment out when testing on mastiff
+#ifdef BGQ
+#include<hwi/include/bqc/A2_inlines.h>
+#define processor_frequency 1600000000.0 // processing speed for BG/Q
+#else
+#define GetTimeBase MPI_Wtime
+#define processor_frequency 1.0 // 1.0 for mastiff since Wtime measures seconds, not cycles
+#endif
+
+// MPI data
+int numRanks = -1; // total number of ranks in the current run
+int rank = -1; // our rank
+
+// puzzle data
 const int boardSize = 16;  // size of both board dimensions
 const int removePercent = 50;  // what percentage of cells to remove for non-evil puzzles
 int regionSize;
 int** board;
-
-/**
- * get the current time in ms
- */
-long long timeInMilliseconds(void) {
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    return (((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);
-}
 
 /**
  * generate and return a random integer between min (inclusive) and max (inclusive)
@@ -287,8 +293,16 @@ void generateBoard(bool isEvil) {
 	printBoard();
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+	// init random using current time in seconds as seed
 	srand(time(0));
+
+	// init MPI + get size & rank, then calculate board data
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	// init board
 	regionSize = sqrt(boardSize);
 	initBoard();
 	puts("-----Generating board-----");
@@ -296,10 +310,17 @@ int main(void) {
 	generateBoard(false);
 	puts("\n-----Solving Board-----");
 	fflush(stdout);
-	long long sTime = timeInMilliseconds();
-	board = serialBruteForceSolver(board);
-	printf("Solved board (elapsed time %f seconds):\n",(timeInMilliseconds()-sTime) *.001);
+
+	// analyze solver performance
+	double g_start_cycles = GetTimeBase();
+	serialBruteForceSolver(board);
+	double time_in_secs = (GetTimeBase() - g_start_cycles) / processor_frequency;
+	printf("Solved board (elapsed time %fs):\n",time_in_secs);
 	printBoard();
 	puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
+
+	// all done
+	for (int i = 0; i < boardSize; free(board[i++]));
+	free(board);
 	return EXIT_SUCCESS;
 }

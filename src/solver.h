@@ -29,10 +29,33 @@ bool serialBruteForceSolverInternal(int** iBoard) {
 }
 
 /**
- * solve the current board serially using brute force to solve for missing values
+ * solve the specified board serially using brute force to determine missing values.
  * @param iBoard: 2d array containing the board data
  */
-int** serialBruteForceSolver(int** iBoard) {
+void serialBruteForceSolver(int** iBoard) {
 	serialBruteForceSolverInternal(iBoard);
-	return iBoard;
+}
+
+/**
+ * solve the specified board in parallel using brute force to determine missing values.
+ * @param iBoard: 2d array containing the board data
+ */
+void parallelBruteForceSolver(int** iBoard) {
+
+}
+
+/**
+ * solve the specified board serially using constraint propagation to determine missing values.
+ * @param iBoard: 2d array containing the board data
+ */
+void serialCPSolver(int** iBoard) {
+
+}
+
+/**
+ * solve the specified board in parallel using constraint propagation to determine missing values.
+ * @param iBoard: 2d array containing the board data
+ */
+void parallelCPSolver(int** iBoard) {
+
 }
