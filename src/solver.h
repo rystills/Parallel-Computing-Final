@@ -13,12 +13,10 @@ int boardIsFilled(int** iBoard);
  * @returns: whether the current board is solved (true) or not (false)
  */
 bool serialBruteForceSolverInternal(int** iBoard) {
-	// base case: board is solved
-	if (boardIsSolved(iBoard)) return true;
-
 	// get location of unfilled cell
 	int missingPos = boardIsFilled(iBoard);
-	if (missingPos == -1) return false;
+	// base case: board is full and solved
+	if (missingPos == -1 && boardIsSolved(iBoard)) return true;
 	int row = missingPos/boardSize, col = missingPos%boardSize;
 
 	// recursively iterate through possible values for unfilled cell

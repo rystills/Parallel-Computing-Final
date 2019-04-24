@@ -2,13 +2,22 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
-#include <time.h>
+#include <sys/time.h>
 #include "solver.h"
 
 const int boardSize = 16;  // size of both board dimensions
-const int removePercent = 70;  // what percentage of cells to remove for non-evil puzzles
+const int removePercent = 50;  // what percentage of cells to remove for non-evil puzzles
 int regionSize;
 int** board;
+
+/**
+ * get the current time in ms
+ */
+long long timeInMilliseconds(void) {
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return (((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);
+}
 
 /**
  * generate and return a random integer between min (inclusive) and max (inclusive)
@@ -96,6 +105,7 @@ bool boardIsSolved(int** iBoard) {
 					insertInPlace(regionVals, iBoard[i*regionSize + j][r*regionSize + k], j*regionSize+k);
 				}
 			}
+			if (regionVals[0] == 0) return false;
 			for (int i = 1; i < boardSize; ++i)
 				if (regionVals[i] != regionVals[i-1]+1) return false;
 		}
@@ -286,10 +296,10 @@ int main(void) {
 	generateBoard(false);
 	puts("\n-----Solving Board-----");
 	fflush(stdout);
+	long long sTime = timeInMilliseconds();
 	board = serialBruteForceSolver(board);
-	puts("Solved board:");
+	printf("Solved board (elapsed time %f seconds):\n",(timeInMilliseconds()-sTime) *.001);
 	printBoard();
 	puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
-
 	return EXIT_SUCCESS;
 }
