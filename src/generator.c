@@ -313,9 +313,11 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	// init board
+	// everyone allocates memory for the starting board
 	regionSize = sqrt(boardSize);
 	initBoard();
+
+	// rank 0 runs the board generation algorithm
 	if (rank == 0) {
 		puts("-----Generating board-----");
 		fflush(stdout);
@@ -324,7 +326,7 @@ int main(int argc, char *argv[]) {
 		fflush(stdout);
 	}
 	// rank 0 sends initial board to all other ranks
-	//MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root,MPI_Comm comm );
+	MPI_Bcast(&(board[0][0]), boardSize*boardSize, MPI_INT, 0, MPI_COMM_WORLD);
 
 	// analyze solver performance
 	double g_start_cycles = GetTimeBase();
