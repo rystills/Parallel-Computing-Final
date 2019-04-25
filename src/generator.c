@@ -304,6 +304,22 @@ void generateBoard(bool isEvil) {
 	printBoard();
 }
 
+/**
+ * create the board from the data located in the specified file
+ * @param fName: the name of the file from which to load the board
+ */
+void readBoardFromFile(char fName[]) {
+	FILE * fp;
+	fp = fopen(fName, "r");
+	for (int i = 0; i < boardSize*boardSize; ++i) {
+		int t = fscanf(fp,"%d ",&board[i/boardSize][i%boardSize]);
+		if (t == 0) {
+			// board read error
+		}
+	}
+	fclose(fp);
+}
+
 int main(int argc, char *argv[]) {
 	// init random using current time in seconds as seed
 	srand(time(0));
@@ -321,7 +337,10 @@ int main(int argc, char *argv[]) {
 	if (rank == 0) {
 		puts("-----Generating board-----");
 		fflush(stdout);
-		generateBoard(false);
+		readBoardFromFile("boardFile.txt");
+		printBoard();
+		return 0;
+		//generateBoard(false);
 		puts("\n-----Solving Board-----");
 		fflush(stdout);
 	}
@@ -333,7 +352,7 @@ int main(int argc, char *argv[]) {
 	if (parallelBruteForceSolver(board)) {
 		// rather than bogging down performance with passive recv tests, the first rank to find a solution outputs the result and aborts
 		double time_in_secs = (GetTimeBase() - g_start_cycles) / processor_frequency;
-		printf("Solved board (elapsed time %fs):\n",time_in_secs);
+		printf("rank %d Solved board (elapsed time %fs):\n",rank, time_in_secs);
 		printBoard();
 		puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
 		MPI_Abort(MPI_COMM_WORLD,1);
