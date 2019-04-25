@@ -330,13 +330,16 @@ int main(int argc, char *argv[]) {
 
 	// analyze solver performance
 	double g_start_cycles = GetTimeBase();
-	serialBruteForceSolver(board);
-	double time_in_secs = (GetTimeBase() - g_start_cycles) / processor_frequency;
-	printf("Solved board (elapsed time %fs):\n",time_in_secs);
-	printBoard();
-	puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
-
+	if (parallelBruteForceSolver(board)) {
+		// rather than bogging down performance with passive recv tests, the first rank to find a solution outputs the result and aborts
+		double time_in_secs = (GetTimeBase() - g_start_cycles) / processor_frequency;
+		printf("Solved board (elapsed time %fs):\n",time_in_secs);
+		printBoard();
+		puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
+		MPI_Abort(MPI_COMM_WORLD,1);
+	}
 	// all done
+	MPI_Finalize();
 	free(board[0]);
 	free(board);
 	return EXIT_SUCCESS;
