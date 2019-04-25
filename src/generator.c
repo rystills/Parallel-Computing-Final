@@ -310,11 +310,15 @@ void generateBoard(bool isEvil) {
  */
 void readBoardFromFile(char fName[]) {
 	FILE * fp;
-	fp = fopen(fName, "r");
+	if ((fp = fopen(fName, "r")) == NULL) {
+		fprintf(stderr,"Unable to locate file %s\n",fName);
+		exit(EXIT_FAILURE);
+	}
 	for (int i = 0; i < boardSize*boardSize; ++i) {
 		int t = fscanf(fp,"%d ",&board[i/boardSize][i%boardSize]);
 		if (t == 0) {
-			// board read error
+			fprintf(stderr,"Error reading board data from %s\n",fName);
+			exit(EXIT_FAILURE);
 		}
 	}
 	fclose(fp);
@@ -340,8 +344,8 @@ int main(int argc, char *argv[]) {
 	if (rank == 0) {
 		puts("-----Generating board-----");
 		fflush(stdout);
-		readBoardFromFile("boardFile.txt");  // *use me to load an existing board for testing / performance analysis
-		//generateBoard(false);  // *use me to generate a new board at random
+		//readBoardFromFile("boardFile.txt");  // *use me to load an existing board for testing / performance analysis
+		generateBoard(false);  // *use me to generate a new board at random
 		puts("\n-----Solving Board-----");
 		fflush(stdout);
 	}
