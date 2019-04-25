@@ -26,6 +26,20 @@ int regionSize;
 int** board;
 
 /**
+ * allocate a contiguous 2d array of ints
+ * @param rows: number of rows in the array
+ * @param cols: number of columns in the array
+ * @returns: a dynamically allocated contiguous 2d array
+ */
+int **alloc_2d_int(int rows, int cols) {
+    int *data = (int *)malloc(rows*cols*sizeof(int));
+    int **array= (int **)malloc(rows*sizeof(int*));
+    for (int i=0; i<rows; ++i)
+        array[i] = &(data[cols*i]);
+    return array;
+}
+
+/**
  * generate and return a random integer between min (inclusive) and max (inclusive)
  * @param min: the lowest (inclusive) value we should be able to generate
  * @param max: the highest (inclusive) value we should be able to generate
@@ -39,13 +53,10 @@ int randInt(int min, int max) {
  * initialize the board to a zeroed 2-dimensional array of boardSize x boardSize
  */
 void initBoard() {
-	board = malloc(boardSize * sizeof(int*));
-	for (int i = 0; i < boardSize; ++i) {
-		board[i] = malloc(boardSize * sizeof(int));
-		for (int r = 0; r < boardSize; ++r) {
+	board = alloc_2d_int(boardSize, boardSize);
+	for (int i = 0; i < boardSize; ++i)
+		for (int r = 0; r < boardSize; ++r)
 			board[i][r] = 0;
-		}
-	}
 }
 
 /**
@@ -305,11 +316,15 @@ int main(int argc, char *argv[]) {
 	// init board
 	regionSize = sqrt(boardSize);
 	initBoard();
-	puts("-----Generating board-----");
-	fflush(stdout);
-	generateBoard(false);
-	puts("\n-----Solving Board-----");
-	fflush(stdout);
+	if (rank == 0) {
+		puts("-----Generating board-----");
+		fflush(stdout);
+		generateBoard(false);
+		puts("\n-----Solving Board-----");
+		fflush(stdout);
+	}
+	// rank 0 sends initial board to all other ranks
+	//MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root,MPI_Comm comm );
 
 	// analyze solver performance
 	double g_start_cycles = GetTimeBase();
@@ -320,7 +335,7 @@ int main(int argc, char *argv[]) {
 	puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
 
 	// all done
-	for (int i = 0; i < boardSize; free(board[i++]));
+	free(board[0]);
 	free(board);
 	return EXIT_SUCCESS;
 }
