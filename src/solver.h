@@ -91,7 +91,7 @@ bool parallelBruteForceSolverInternal(int** iBoard, int adjustedRank, int adjust
 	printf("rank %d: cellStartIndex = %d numValidCellValues = %d startRecursionLayer = %d\n",rank,cellStartIndex,numValidCellValues, startRecursionLayer);
 
 	for (int i = cellStartIndex; i < numValidCellValues; ++i) {
-		//now that we've found our parallel initial traversal, we can switch to the serial solver
+		// now that we've found our parallel initial traversal, we can switch to the serial solver
 		iBoard[row][col] = validCellValues[i];
 		if (serialBruteForceSolverInternal(iBoard))
 			return true;

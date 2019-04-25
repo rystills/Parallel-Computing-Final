@@ -18,12 +18,14 @@
 // MPI data
 int numRanks = -1; // total number of ranks in the current run
 int rank = -1; // our rank
+int numPeers; // number of peers per cell
 
 // puzzle data
-const int boardSize = 16;  // size of both board dimensions
+const int boardSize = 9;  // size of both board dimensions
 const int removePercent = 50;  // what percentage of cells to remove for non-evil puzzles
 int regionSize;
 int** board;
+int**** peers;
 
 /**
  * allocate a contiguous 2d array of ints
@@ -57,6 +59,56 @@ void initBoard() {
 	for (int i = 0; i < boardSize; ++i)
 		for (int r = 0; r < boardSize; ++r)
 			board[i][r] = 0;
+}
+
+/**
+ * initialize the peers list to a 4d array of boardSize x boardSize x numPeers x 2
+ */
+void initPeers() {
+	peers = malloc(boardSize * sizeof(int*));
+	// init all 4 dimensions first
+	for (int i = 0; i < boardSize; ++i) {
+		peers[i] = malloc(boardSize * sizeof(int*));
+		for (int r = 0; r < boardSize; ++r) {
+			peers[i][r] = malloc(numPeers * sizeof(int*));
+			for (int k = 0; k < numPeers; ++k) {
+				peers[i][r][k] = malloc(2 * sizeof(int));
+			}
+		}
+	}
+
+	// now add peer row,col pairs to each cell
+	for (int row = 0; row < boardSize; ++row) {
+		for (int col = 0; col < boardSize; ++col) {
+			int peerInd = 0;
+			// row/col peers
+			for (int k = 0; k < boardSize; ++k) {
+				if (k!=row) {
+					peers[row][col][peerInd][0] = k;
+					peers[row][col][peerInd][1] = col;
+					++peerInd;
+				}
+				if (k!=col) {
+					peers[row][col][peerInd][0] = row;
+					peers[row][col][peerInd][1] = k;
+					++peerInd;
+				}
+			}
+
+			//region peers
+			int regionRow = row-(row%regionSize);
+			int regionCol = col-(col%regionSize);
+			for (int i = 0; i < regionSize; ++i) {
+				for (int r = 0; r < regionSize; ++r) {
+					if (regionRow+i == row || regionCol+r == col)
+						continue;
+					peers[row][col][peerInd][0] = regionRow + i;
+					peers[row][col][peerInd][1] = regionCol + r;
+					++peerInd;
+				}
+			}
+		}
+	}
 }
 
 /**
@@ -338,7 +390,9 @@ int main(int argc, char *argv[]) {
 
 	// everyone allocates memory for the starting board
 	regionSize = sqrt(boardSize);
+	numPeers = 2*(boardSize-1) + regionSize*regionSize - 2*(regionSize-1) - 1;
 	initBoard();
+	initPeers();
 
 	// rank 0 runs the board generation algorithm
 	if (rank == 0) {
