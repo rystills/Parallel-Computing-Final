@@ -41,9 +41,12 @@ void serialBruteForceSolver(int** iBoard) {
 /**
  * core recursive internal function for parallel brute force solver; recursively fills in cell values.
  * @param iBoard: 2d array containing the board data
+ * @param adjustedRank: a value propagated through the initial traversal yielding our current rank minus the number of ranks that have claimed a starting location
+ * @param adjustedNumRanks: a value propagated through the initial traversal yielding the total number of ranks minus the number of ranks that have claimed a starting location
+ * @param startRecursionLayer: counter which keeps track of the recursion layer at which the current rank begins solving, for debugging purposes
  * @returns: whether the current board is solved (true) or not (false)
  */
-bool parallelBruteForceSolverInternal(int** iBoard) {
+bool parallelBruteForceSolverInternal(int** iBoard, int adjustedRank, int adjustedNumRanks, int startRecursionLayer) {
 	// get location of unfilled cell
 	int missingPos = boardIsFilled(iBoard);
 
@@ -60,18 +63,32 @@ bool parallelBruteForceSolverInternal(int** iBoard) {
 			validCellValues[numValidCellValues++] = i;
 	}
 
+	// nothing else for this rank to do if it hit a wall before starting
+	if (numValidCellValues == 0) {
+		return false;
+	}
+
 	// now attempt to evenly split up the initial tree traversal by rank
 	int cellStartIndex = -1;
-	if (numValidCellValues == numRanks) {
-		cellStartIndex = rank;
+	if (numValidCellValues == adjustedNumRanks) {
+		// we have the same number of remaining ranks as valid cell values, so we can assign a 1:1 pairing
+		cellStartIndex = adjustedRank;
 	}
-	else if (numValidCellValues > numRanks) {
-		cellStartIndex = round(numValidCellValues/numRanks)*rank;
+	else if (numValidCellValues > adjustedNumRanks) {
+		// we have more valid cell values than remaining ranks, so divide the ranks up as evenly as possible
+		cellStartIndex = round(numValidCellValues/adjustedNumRanks)*adjustedRank;
 	}
 	else {
-		//todo: traverse the tree one level deeper and try again
+		// we have more remaining ranks than valid cell values; stop here if our adjusted rank is low enough, otherwise iterate one level deeper
+		if (adjustedRank < numValidCellValues) {
+			cellStartIndex = adjustedRank;
+		}
+		else {
+			iBoard[row][col] = validCellValues[adjustedRank%numValidCellValues];
+			return parallelBruteForceSolverInternal(iBoard, adjustedRank-numValidCellValues, adjustedNumRanks-numValidCellValues, startRecursionLayer+1);
+		}
 	}
-	printf("rank %d: cellStartIndex = %d numValidCellValues = %d\n",rank,cellStartIndex,numValidCellValues);
+	printf("rank %d: cellStartIndex = %d numValidCellValues = %d startRecursionLayer = %d\n",rank,cellStartIndex,numValidCellValues, startRecursionLayer);
 
 	for (int i = cellStartIndex; i < numValidCellValues; ++i) {
 		//now that we've found our parallel initial traversal, we can switch to the serial solver
@@ -90,7 +107,7 @@ bool parallelBruteForceSolverInternal(int** iBoard) {
  * @returns whether this rank found a solution (true) or not (false)
  */
 bool parallelBruteForceSolver(int** iBoard) {
-	return parallelBruteForceSolverInternal(iBoard);
+	return parallelBruteForceSolverInternal(iBoard, rank, numRanks, 1);
 }
 
 /**

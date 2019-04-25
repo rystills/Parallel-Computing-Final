@@ -278,7 +278,7 @@ void generateBoard(bool isEvil) {
 		}
 	}
 
-	puts("Finished board:");
+	puts("Finished generating board:");
 	printBoard();
 	puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
 
@@ -318,6 +318,9 @@ void readBoardFromFile(char fName[]) {
 		}
 	}
 	fclose(fp);
+
+	puts("Finished loading board:");
+	printBoard();
 }
 
 int main(int argc, char *argv[]) {
@@ -337,10 +340,8 @@ int main(int argc, char *argv[]) {
 	if (rank == 0) {
 		puts("-----Generating board-----");
 		fflush(stdout);
-		readBoardFromFile("boardFile.txt");
-		printBoard();
-		return 0;
-		//generateBoard(false);
+		readBoardFromFile("boardFile.txt");  // *use me to load an existing board for testing / performance analysis
+		//generateBoard(false);  // *use me to generate a new board at random
 		puts("\n-----Solving Board-----");
 		fflush(stdout);
 	}
