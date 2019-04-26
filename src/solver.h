@@ -8,6 +8,7 @@ extern int rank;
 bool boardIsSolved(int** iBoard);
 bool cellIsValid(int row, int col, int** iBoard);
 int boardIsFilled(int** iBoard);
+int ***alloc_3d_int(int x, int y, int z);
 
 /**
  * core recursive internal function for serial brute force solver; recursively fills in cell values
@@ -34,8 +35,8 @@ bool serialBruteForceSolverInternal(int** iBoard) {
  * solve the specified board serially using brute force to determine missing values.
  * @param iBoard: 2d array containing the board data
  */
-void serialBruteForceSolver(int** iBoard) {
-	serialBruteForceSolverInternal(iBoard);
+bool serialBruteForceSolver(int** iBoard) {
+	return serialBruteForceSolverInternal(iBoard);
 }
 
 /**
@@ -114,14 +115,33 @@ bool parallelBruteForceSolver(int** iBoard) {
  * solve the specified board serially using constraint propagation to determine missing values.
  * @param iBoard: 2d array containing the board data
  */
-void serialCPSolver(int** iBoard) {
+bool serialCPSolver(int** iBoard) {
+	// init possibility values for each cell
+	int*** possibleValues = alloc_3d_int(boardSize,boardSize,boardSize);
+	for (int i = 0; i < boardSize; ++i) {
+		for (int r = 0; r < boardSize; ++r) {
+			// current cell is unknown: start will all possible values
+			if (iBoard[i][r] == 0) {
+				for (int k = 0; k < boardSize; ++k) {
+					possibleValues[i][r][k] = k+1;
+				}
+			}
+			// current cell is known: start only with the given value
+			else {
+				possibleValues[i][r][0] = iBoard[i][r];
+				possibleValues[i][r][1] = 0;
+			}
+		}
+	}
 
+
+	return true;
 }
 
 /**
  * solve the specified board in parallel using constraint propagation to determine missing values.
  * @param iBoard: 2d array containing the board data
  */
-void parallelCPSolver(int** iBoard) {
-
+bool parallelCPSolver(int** iBoard) {
+	return true;
 }
