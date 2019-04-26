@@ -3,8 +3,10 @@ extern const int boardSize;  // size of both board dimensions
 extern const int removePercent;  // what percentage of cells to remove for non-evil puzzles
 extern int regionSize;
 extern int** board;
+extern int**** peers;
 extern int numRanks;
 extern int rank;
+extern int numPeers;
 bool boardIsSolved(int** iBoard);
 bool cellIsValid(int row, int col, int** iBoard);
 int boardIsFilled(int** iBoard);
@@ -134,6 +136,28 @@ bool serialCPSolver(int** iBoard) {
 		}
 	}
 
+	// run constraint propagation
+	for (int row = 0; row < boardSize; ++row) {
+		for (int col = 0; col < boardSize; ++col) {
+			if (possibleValues[row][col][1] == 0) {
+				int removeVal = possibleValues[row][col][0];
+				// this cell has only one possible value; remove it from all of its peers' possibility lists
+				for (int i = 0; i < numPeers; ++i) {
+					int peerRow = peers[row][col][i][0];
+					int peerCol = peers[row][col][i][1];
+					for (int r = 0; r < boardSize && possibleValues[peerRow][peerCol][r] != 0; ++r) {
+						if (possibleValues[peerRow][peerCol][r] == removeVal) {
+							// value found; remove it and shift remaining values left
+							for (int k = r+1; k < boardSize && possibleValues[peerRow][peerCol][k-1] !=0; ++k)
+								possibleValues[peerRow][peerCol][k-1] = possibleValues[peerRow][peerCol][k];
+							possibleValues[peerRow][peerCol][boardSize-1] = 0;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
 
 	return true;
 }
