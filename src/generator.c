@@ -31,7 +31,7 @@ int**** peers;
  * allocate a contiguous 2d array of ints
  * @param rows: number of rows in the array
  * @param cols: number of columns in the array
- * @returns: a dynamically allocated contiguous 2d array
+ * @returns: a dynamically allocated contiguous 2d array of dims row x column
  */
 int **alloc_2d_int(int rows, int cols) {
     int *data = (int *)malloc(rows*cols*sizeof(int));
@@ -39,6 +39,48 @@ int **alloc_2d_int(int rows, int cols) {
     for (int i=0; i<rows; ++i)
         array[i] = &(data[cols*i]);
     return array;
+}
+
+/**
+ * deallocate a contiguous 2d array of ints
+ * @param arr: the array we wish to free
+ */
+void dealloc_2d_int(int **arr) {
+	free(arr[0]);
+	free(arr);
+}
+
+/**
+ * allocate a contiguous 3d array of ints
+ * @param x: number of values in the first dimension
+ * @param y: number of values in the second dimension
+ * @param z: number of values in the third dimension
+ * @returns: a dynamically allocated contiguous 3d array of dims x x y x z
+ */
+int ***alloc_3d_int(int x, int y, int z) {
+	int *p = (int*) malloc(x * y * z * sizeof(int));
+	int ***q = (int***) malloc(x * sizeof(int**));
+	for (int i = 0; i < x; i++) {
+		q[i] = (int**) malloc(y * sizeof(int*));
+		for (int j = 0; j < y; j++) {
+			int idx = x*j + x*y*i;
+			q[i][j] = &p[idx];
+		}
+	}
+	return q;
+}
+
+/**
+ * deallocate a contiguous 3d array of ints
+ * @param x: number of values in the first dimension
+ * @param arr: the array we wish to free
+ */
+void dealloc_3d_int(int x, int ***arr) {
+	free(arr[0][0]);
+	for(int i = 0; i < x; i++) {
+		free(arr[i]);
+	}
+	free(arr);
 }
 
 /**
@@ -408,17 +450,15 @@ int main(int argc, char *argv[]) {
 
 	// analyze solver performance
 	double g_start_cycles = GetTimeBase();
-	if (parallelBruteForceSolver(board)) {
+	if (serialCPSolver(board)) {
 		// rather than bogging down performance with passive recv tests, the first rank to find a solution outputs the result and aborts
 		double time_in_secs = (GetTimeBase() - g_start_cycles) / processor_frequency;
 		printf("rank %d Solved board (elapsed time %fs):\n",rank, time_in_secs);
 		printBoard();
 		puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
-		MPI_Abort(MPI_COMM_WORLD,1);
+		if (numRanks > 1) MPI_Abort(MPI_COMM_WORLD,1);
 	}
 	// all done
 	MPI_Finalize();
-	free(board[0]);
-	free(board);
 	return EXIT_SUCCESS;
 }
