@@ -135,6 +135,40 @@ bool removePossibleValue(int*** possibleValues, int peerRow, int peerCol, int re
 }
 
 /**
+ * determine whether or not any cells have more than one remaining possible value
+ * @param possibleValues: the full possibleValues array
+ * @returns whether at least one cell has more than one remaining possible value (true) or not (false)
+ */
+bool possibilitiesRemain(int*** possibleValues) {
+	for (int i = 0; i < boardSize; ++i) {
+		for (int r = 0; r < boardSize; ++r) {
+			if (possibleValues[i][r][1] != 0) return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * check if the specified value is in the missing values array. If so, remove the value and shift the remaining values down, terminating with 0.
+ * @param val: the value to remove from the array, if present
+ * @param arr: the missing values array from which to remove the specified value
+ * @param arrLen: the length of the missing values array (not accounting for 0's)
+ * @returns: whether the value was found in and removed from the missing values array (true) or not (false)
+ */
+bool checkRemoveValFromMissingList(int val, int* arr, int arrLen) {
+	for (int i = 0; i < arrLen && arr[i] != 0; ++i) {
+		if (val == arr[i]) {
+			// value found: remove it and shift remaining values down
+			for (int k = i+1; k < arrLen && arr[k-1] !=0; ++k)
+				arr[k-1] = arr[k];
+			arr[arrLen-1] = 0;
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * solve the specified board serially using constraint propagation to determine missing values.
  * @param iBoard: 2d array containing the board data
  */
@@ -157,19 +191,51 @@ bool serialCPSolver(int** iBoard) {
 		}
 	}
 
-	// run constraint propagation
-	for (int row = 0; row < boardSize; ++row) {
-		for (int col = 0; col < boardSize; ++col) {
-			// apply CP rule 1 (remove peer known values from the current cell's possibility values list)
-			for (int i = 0; i < numPeers; ++i) {
-				int peerRow = peers[row][col][i][0], peerCol = peers[row][col][i][1];
-				if (possibleValues[peerRow][peerCol][1] == 0) {
-					removePossibleValue(possibleValues, row, col, possibleValues[peerRow][peerCol][0]);
+	// run constraint propagation until we solve the board
+	while (possibilitiesRemain(possibleValues)) {
+		for (int row = 0; row < boardSize; ++row) {
+			for (int col = 0; col < boardSize; ++col) {
+				// apply CP rule 1 (remove peer known values from the current cell's possibility values list)
+				for (int i = 0; i < numPeers; ++i) {
+					int peerRow = peers[row][col][i][0], peerCol = peers[row][col][i][1];
+					if (possibleValues[peerRow][peerCol][1] == 0) {
+						removePossibleValue(possibleValues, row, col, possibleValues[peerRow][peerCol][0]);
+					}
+				}
+				// apply CP rule 2 (choose value if all peers have removed it from their possibility list)
+				// start with an array considering all values as missing
+				int peersMissingValues[boardSize];
+				for (int i = 0; i < boardSize; ++i)
+					peersMissingValues[i] = i+1;
+
+				// for each peer, take values out of the missing array if that peer isn't missing the value
+				for (int i = 0; i < numPeers; ++i) {
+					int peerRow = peers[row][col][i][0], peerCol = peers[row][col][i][1];
+					// iterate over all possible values in current peer
+					for (int r = 0; r < boardSize && possibleValues[peerRow][peerCol][r] != 0; ++r) {
+						checkRemoveValFromMissingList(possibleValues[peerRow][peerCol][r],peersMissingValues,boardSize);
+						if (peersMissingValues[0] == 0) break;
+					}
+					if (peersMissingValues[0] == 0) break;
+				}
+				// we found a value that was missing in all of our peers, so it must be our value
+				if (peersMissingValues[0] != 0) {
+					possibleValues[row][col][0] = peersMissingValues[0];
+					possibleValues[row][col][1] = 0;
 				}
 			}
 		}
 	}
 
+	// apply all values to iBoard
+	for (int row = 0; row < boardSize; ++row) {
+		for (int col = 0; col < boardSize; ++col) {
+			if (iBoard[row][col] == 0) {
+				// current cell was an unknown; apply the corresponding possibilities value to it
+				iBoard[row][col] = possibleValues[row][col][0];
+			}
+		}
+	}
 	return true;
 }
 
