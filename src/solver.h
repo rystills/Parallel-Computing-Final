@@ -11,6 +11,7 @@ bool boardIsSolved(int** iBoard);
 bool cellIsValid(int row, int col, int** iBoard);
 int boardIsFilled(int** iBoard);
 int ***alloc_3d_int(int x, int y, int z);
+void dealloc_3d_int(int x, int ***arr);
 
 /**
  * core recursive internal function for serial brute force solver; recursively fills in cell values
@@ -169,32 +170,49 @@ bool checkRemoveValFromMissingList(int val, int* arr, int arrLen) {
 }
 
 /**
- * solve the specified board serially using constraint propagation to determine missing values.
- * @param iBoard: 2d array containing the board data
+ * copy all possible values from pva to pvb
+ * @param pva: possible values list to copy from
+ * @param pvb: possible values list to copy to
  */
-bool serialCPSolver(int** iBoard) {
-	// init possibility values for each cell
-	int*** possibleValues = alloc_3d_int(boardSize,boardSize,boardSize);
-	for (int i = 0; i < boardSize; ++i) {
-		for (int r = 0; r < boardSize; ++r) {
-			// current cell is unknown: start will all possible values
-			if (iBoard[i][r] == 0) {
-				for (int k = 0; k < boardSize; ++k) {
-					possibleValues[i][r][k] = k+1;
-				}
-			}
-			// current cell is known: start only with the given value
-			else {
-				possibleValues[i][r][0] = iBoard[i][r];
-				possibleValues[i][r][1] = 0;
+void copyPossibleValues(int*** pva, int*** pvb) {
+	for (int row = 0; row < boardSize; ++row) {
+		for (int col = 0; col < boardSize; ++col) {
+			for (int i = 0; i < boardSize; ++i) {
+				pvb[row][col][i] = pva[row][col][i];
 			}
 		}
 	}
+}
 
+/**
+ * copy all cell single possiblities to iBoard
+ * @param iBoard: 2d array containing the board data
+ * @param possibleValues: the full possibleValues array
+ */
+void copyPossibilitiesToBoard(int** iBoard, int*** possibleValues) {
+	for (int row = 0; row < boardSize; ++row) {
+		for (int col = 0; col < boardSize; ++col) {
+			iBoard[row][col] = possibleValues[row][col][0];
+		}
+	}
+}
+
+/**
+ * core recursive internal function for serial constraint propagation solver; recursion branches each time CP can't reduce any further.
+ * @param iBoard: 2d array containing the board data
+ * @param possibleValues: the full possibleValues array
+ * @returns: whether this branch led to a solution (true) or not (false)
+ */
+bool serialCPSolverInternal(int** iBoard, int*** possibleValues) {
 	// run constraint propagation until we solve the board
-	while (possibilitiesRemain(possibleValues)) {
+	bool createdNewSingleton = true;
+	while (createdNewSingleton && possibilitiesRemain(possibleValues)) {
+		createdNewSingleton = false;
 		for (int row = 0; row < boardSize; ++row) {
 			for (int col = 0; col < boardSize; ++col) {
+				// skip cells that are already completed
+				if (possibleValues[row][col][1] == 0)
+					continue;
 				// apply CP rule 1 (remove peer known values from the current cell's possibility values list)
 				for (int i = 0; i < numPeers; ++i) {
 					int peerRow = peers[row][col][i][0], peerCol = peers[row][col][i][1];
@@ -222,20 +240,93 @@ bool serialCPSolver(int** iBoard) {
 				if (peersMissingValues[0] != 0) {
 					possibleValues[row][col][0] = peersMissingValues[0];
 					possibleValues[row][col][1] = 0;
+					// we created a new singleton (cell with only 1 possible value), so we can keep running CP
+					createdNewSingleton = true;
 				}
 			}
 		}
 	}
 
-	// apply all values to iBoard
+	// if we have reduced all cell possibilities to singletons, we have either a solution or a contradiction
+	if (!possibilitiesRemain(possibleValues)) {
+		copyPossibilitiesToBoard(iBoard,possibleValues);
+		return boardIsSolved(iBoard);
+	}
+
+	// if any cells have no possibilities, we've reached a contradiction
 	for (int row = 0; row < boardSize; ++row) {
 		for (int col = 0; col < boardSize; ++col) {
-			if (iBoard[row][col] == 0) {
-				// current cell was an unknown; apply the corresponding possibilities value to it
-				iBoard[row][col] = possibleValues[row][col][0];
+			if (possibleValues[row][col][0] == 0)
+				return false;
+		}
+	}
+
+	// find the cell with the fewest possibilities
+	int fewestRow = -1, fewestCol = -1;
+	int fewestPossibilities = boardSize+1;
+	for (int row = 0; row < boardSize; ++row) {
+		for (int col = 0; col < boardSize; ++col) {
+			// possible candidate
+			if (possibleValues[row][col][1] != 0) {
+				int curPossibilities = 0;
+				for (int k = 0; k < boardSize && possibleValues[row][col][k] != 0; ++k, ++curPossibilities);
+				// found a new cell with the fewest possibilities
+				if (curPossibilities < fewestPossibilities) {
+					fewestPossibilities = curPossibilities;
+					fewestRow = row;
+					fewestCol = col;
+				}
 			}
 		}
 	}
+	// copy the full possibilities list as we might have to undo future decisions if this branch is unsuccessful
+	int*** possibleValuesCopy = alloc_3d_int(boardSize,boardSize,boardSize);
+	copyPossibleValues(possibleValues, possibleValuesCopy);
+	// recurse on the cell with the fewest possibilities for each potential possibility
+	for (int i = 0; i < fewestPossibilities; ++i) {
+		possibleValues[fewestRow][fewestCol][0] = possibleValuesCopy[fewestRow][fewestCol][i];
+		possibleValues[fewestRow][fewestCol][1] = 0;
+		if (serialCPSolverInternal(iBoard, possibleValues)) {
+			dealloc_3d_int(boardSize, possibleValuesCopy);
+			return true;
+		}
+		// branch was unsuccessful; revert possible values and try the next branch
+		copyPossibleValues(possibleValuesCopy, possibleValues);
+	}
+
+	// all branches failed; a previous guess must have been wrong
+	dealloc_3d_int(boardSize, possibleValuesCopy);
+	return false;
+}
+
+/**
+ * solve the specified board serially using constraint propagation to determine missing values.
+ * @param iBoard: 2d array containing the board data
+ */
+bool serialCPSolver(int** iBoard) {
+	// init possibility values for each cell
+	int*** possibleValues = alloc_3d_int(boardSize,boardSize,boardSize);
+	for (int i = 0; i < boardSize; ++i) {
+		for (int r = 0; r < boardSize; ++r) {
+			// current cell is unknown: start will all possible values
+			if (iBoard[i][r] == 0) {
+				for (int k = 0; k < boardSize; ++k) {
+					possibleValues[i][r][k] = k+1;
+				}
+			}
+			// current cell is known: start only with the given value
+			else {
+				possibleValues[i][r][0] = iBoard[i][r];
+				possibleValues[i][r][1] = 0;
+			}
+		}
+	}
+
+	// run the core recursive CP solver method
+	serialCPSolverInternal(iBoard, possibleValues);
+
+	// apply resulting values to iBoard
+	copyPossibilitiesToBoard(iBoard, possibleValues);
 	return true;
 }
 
