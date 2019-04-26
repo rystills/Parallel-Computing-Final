@@ -114,6 +114,27 @@ bool parallelBruteForceSolver(int** iBoard) {
 }
 
 /**
+ * remove the specified value from the possibleValues list for the cell at peerRow,peerCol
+ * @param possibleValues: the full possibleValues array
+ * @param peerRow: the row of the cell from whom we wish to remove the possible value
+ * @param peerCol: the column of the cell from whom we wish to remove the possible value
+ * @param removeVal: the value we wish to remove
+ * @returns: whether the value was found and removed (true) or not (false)
+ */
+bool removePossibleValue(int*** possibleValues, int peerRow, int peerCol, int removeVal) {
+	for (int r = 0; r < boardSize && possibleValues[peerRow][peerCol][r] != 0; ++r) {
+		if (possibleValues[peerRow][peerCol][r] == removeVal) {
+			// value found; remove it and shift remaining values left
+			for (int k = r+1; k < boardSize && possibleValues[peerRow][peerCol][k-1] !=0; ++k)
+				possibleValues[peerRow][peerCol][k-1] = possibleValues[peerRow][peerCol][k];
+			possibleValues[peerRow][peerCol][boardSize-1] = 0;
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * solve the specified board serially using constraint propagation to determine missing values.
  * @param iBoard: 2d array containing the board data
  */
@@ -140,21 +161,9 @@ bool serialCPSolver(int** iBoard) {
 	for (int row = 0; row < boardSize; ++row) {
 		for (int col = 0; col < boardSize; ++col) {
 			if (possibleValues[row][col][1] == 0) {
-				int removeVal = possibleValues[row][col][0];
 				// this cell has only one possible value; remove it from all of its peers' possibility lists
-				for (int i = 0; i < numPeers; ++i) {
-					int peerRow = peers[row][col][i][0];
-					int peerCol = peers[row][col][i][1];
-					for (int r = 0; r < boardSize && possibleValues[peerRow][peerCol][r] != 0; ++r) {
-						if (possibleValues[peerRow][peerCol][r] == removeVal) {
-							// value found; remove it and shift remaining values left
-							for (int k = r+1; k < boardSize && possibleValues[peerRow][peerCol][k-1] !=0; ++k)
-								possibleValues[peerRow][peerCol][k-1] = possibleValues[peerRow][peerCol][k];
-							possibleValues[peerRow][peerCol][boardSize-1] = 0;
-							break;
-						}
-					}
-				}
+				for (int i = 0; i < numPeers; ++i)
+					removePossibleValue(possibleValues, peers[row][col][i][0], peers[row][col][i][1], possibleValues[row][col][0]);
 			}
 		}
 	}
