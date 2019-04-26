@@ -160,10 +160,12 @@ bool serialCPSolver(int** iBoard) {
 	// run constraint propagation
 	for (int row = 0; row < boardSize; ++row) {
 		for (int col = 0; col < boardSize; ++col) {
-			if (possibleValues[row][col][1] == 0) {
-				// this cell has only one possible value; remove it from all of its peers' possibility lists
-				for (int i = 0; i < numPeers; ++i)
-					removePossibleValue(possibleValues, peers[row][col][i][0], peers[row][col][i][1], possibleValues[row][col][0]);
+			// apply CP rule 1 (remove peer known values from the current cell's possibility values list)
+			for (int i = 0; i < numPeers; ++i) {
+				int peerRow = peers[row][col][i][0], peerCol = peers[row][col][i][1];
+				if (possibleValues[peerRow][peerCol][1] == 0) {
+					removePossibleValue(possibleValues, row, col, possibleValues[peerRow][peerCol][0]);
+				}
 			}
 		}
 	}
