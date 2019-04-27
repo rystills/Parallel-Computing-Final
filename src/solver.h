@@ -436,6 +436,8 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues, int*** boardC
 			}
 		}
 	}
+	//TODO: check async receive boards from all other ranks
+
 	// copy the full possibilities list as we might have to undo future decisions if this branch is unsuccessful
 	int*** possibleValuesCopy = alloc_3d_int(boardSize,boardSize,boardSize);
 	copyPossibleValues(possibleValues, possibleValuesCopy);
@@ -443,10 +445,18 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues, int*** boardC
 	for (int i = 0; i < fewestPossibilities; ++i) {
 		possibleValues[fewestRow][fewestCol][0] = possibleValuesCopy[fewestRow][fewestCol][i];
 		possibleValues[fewestRow][fewestCol][1] = 0;
-		if (parallelCPSolverInternal(iBoard, possibleValues, boardCopies)) {
-			dealloc_3d_int(boardSize, possibleValuesCopy);
-			return true;
+		//skip boards that have already been explored
+		copyPossibilitiesToBoard(iBoard, possibleValues);
+		if (!boardInBoardCopies(iBoard, boardCopies)) {
+
+			//TODO: send board to all other ranks
+
+			if (parallelCPSolverInternal(iBoard, possibleValues, boardCopies)) {
+				dealloc_3d_int(boardSize, possibleValuesCopy);
+				return true;
+			}
 		}
+
 		// branch was unsuccessful; revert possible values and try the next branch
 		copyPossibleValues(possibleValuesCopy, possibleValues);
 	}
