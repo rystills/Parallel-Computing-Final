@@ -460,6 +460,9 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues, int*** boardC
 		if (!boardInBoardCopies(iBoard, boardCopies)) {
 			// this board hasn't been explored yet; send board to all other ranks before using it
 			for (int curRank = 0; curRank < numRanks; ++curRank) {
+				// skip ourselves
+				if (curRank == rank)
+					continue;
 				MPI_Request curReq;
 				MPI_Isend(&(iBoard[0][0]), boardSize*boardSize, MPI_INT, curRank, 0, MPI_COMM_WORLD, &curReq);
 			}
