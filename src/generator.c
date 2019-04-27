@@ -22,7 +22,7 @@ int numPeers; // number of peers per cell
 
 // puzzle data
 const int boardSize = 9;  // size of both board dimensions
-const int removePercent = 50;  // what percentage of cells to remove for non-evil puzzles
+const int removePercent = 55;  // what percentage of cells to remove
 int regionSize;
 int** board;
 int**** peers;
@@ -306,9 +306,8 @@ void swapCols(int c1, int c2) {
 
 /**
  * generate a boardSize x boardSize board
- * @param isEvil: whether the board should force only one solution (true) or allow for potentially multiple solutions (false)
  */
-void generateBoard(bool isEvil) {
+void generateBoard() {
 	// start with repeated regions, offset by regionSize
 	for (int i = 0; i < boardSize; ++i) {
 		for (int r = 0; r < boardSize; ++r) {
@@ -376,24 +375,20 @@ void generateBoard(bool isEvil) {
 	printBoard();
 	puts(boardIsSolved(board) ? "Board passed validation test" : "Board failed validation test");
 
-	// remove some cell values
-	if (isEvil) {
-
-	}
-	else {
-		// remove cells at random until we reach the defined threshold
-		int removeNum = boardSize*boardSize * (removePercent/100.0f);
-		printf("Removing %d cells (%d%% removal threshold)\n",removeNum, removePercent);
-		for (int i = 0; i < removeNum; ++i) {
-			int row = randInt(0,boardSize-1);
-			int col = randInt(0,boardSize-1);
-			if (board[row][col] == 0) {
-				--i;
-				continue;
-			}
-			board[row][col] = 0;
+	// remove cells at random until we reach the defined threshold
+	int removeNum = boardSize*boardSize * (removePercent/100.0f);
+	printf("Removing %d cells (%d%% removal threshold)\n",removeNum, removePercent);
+	for (int i = 0; i < removeNum; ++i) {
+		int row = randInt(0,boardSize-1);
+		int col = randInt(0,boardSize-1);
+		if (board[row][col] == 0) {
+			--i;
+			continue;
 		}
+		board[row][col] = 0;
 	}
+
+	// print final board output
 	puts("Stripped board:");
 	printBoard();
 }
@@ -441,7 +436,7 @@ int main(int argc, char *argv[]) {
 		puts("-----Generating board-----");
 		fflush(stdout);
 		//readBoardFromFile("boardFile.txt");  // *use me to load an existing board for testing / performance analysis
-		generateBoard(false);  // *use me to generate a new board at random
+		generateBoard();  // *use me to generate a new board at random
 		puts("\n-----Solving Board-----");
 		fflush(stdout);
 	}
@@ -450,7 +445,7 @@ int main(int argc, char *argv[]) {
 
 	// analyze solver performance
 	double g_start_cycles = GetTimeBase();
-	if (serialCPSolver(board)) {
+	if (parallelCPSolver(board)) {
 		// rather than bogging down performance with passive recv tests, the first rank to find a solution outputs the result and aborts
 		double time_in_secs = (GetTimeBase() - g_start_cycles) / processor_frequency;
 		printf("rank %d Solved board (elapsed time %fs):\n",rank, time_in_secs);
