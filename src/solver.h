@@ -194,7 +194,8 @@ void copyPossibleValues(int*** pva, int*** pvb) {
 void copyPossibilitiesToBoard(int** iBoard, int*** possibleValues) {
 	for (int row = 0; row < boardSize; ++row) {
 		for (int col = 0; col < boardSize; ++col) {
-			iBoard[row][col] = possibleValues[row][col][0];
+			// if the current cell has more than one possible value, insert a 0 to signify that the cell is unknown
+			iBoard[row][col] = (possibleValues[row][col][1] == 0 ? possibleValues[row][col][0] : 0);
 		}
 	}
 }
