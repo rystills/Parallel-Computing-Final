@@ -419,7 +419,7 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues) {
 	for (int i = 0; i < fewestPossibilities; ++i) {
 		possibleValues[fewestRow][fewestCol][0] = possibleValuesCopy[fewestRow][fewestCol][i];
 		possibleValues[fewestRow][fewestCol][1] = 0;
-		if (serialCPSolverInternal(iBoard, possibleValues)) {
+		if (parallelCPSolverInternal(iBoard, possibleValues)) {
 			dealloc_3d_int(boardSize, possibleValuesCopy);
 			return true;
 		}
@@ -456,7 +456,7 @@ bool parallelCPSolver(int** iBoard) {
 	}
 
 	// run the core recursive CP solver method
-	serialCPSolverInternal(iBoard, possibleValues);
+	parallelCPSolverInternal(iBoard, possibleValues);
 
 	// apply resulting values to iBoard
 	copyPossibilitiesToBoard(iBoard, possibleValues);
