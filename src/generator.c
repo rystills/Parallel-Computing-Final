@@ -445,7 +445,7 @@ int main(int argc, char *argv[]) {
 
 	// analyze solver performance
 	double g_start_cycles = GetTimeBase();
-	if (parallelCPSolver(board)) {
+	if (serialCPSolver(board)) {  // replace me with your desired solver method
 		// rather than bogging down performance with passive recv tests, the first rank to find a solution outputs the result and aborts
 		double time_in_secs = (GetTimeBase() - g_start_cycles) / processor_frequency;
 		printf("rank %d Solved board (elapsed time %fs):\n",rank, time_in_secs);

@@ -444,7 +444,6 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues, int*** boardC
 	if (flag) {
 		// we're ready to receive a board; load it in and add it to our board list
 		MPI_Recv(&(boardCopies[numBoards++][0][0]), boardSize*boardSize, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status );
-
 	}
 
 	// copy the full possibilities list as we might have to undo future decisions if this branch is unsuccessful
@@ -454,13 +453,14 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues, int*** boardC
 	for (int i = 0; i < fewestPossibilities; ++i) {
 		possibleValues[fewestRow][fewestCol][0] = possibleValuesCopy[fewestRow][fewestCol][i];
 		possibleValues[fewestRow][fewestCol][1] = 0;
-		//skip boards that have already been explored
+
+		//skip boards that have already been explored by other ranks
 		copyPossibilitiesToBoard(iBoard, possibleValues);
 		if (!boardInBoardCopies(iBoard, boardCopies)) {
-			// send board to all other ranks
+			// this board hasn't been explored yet; send board to all other ranks before using it
 			for (int curRank = 0; curRank < numRanks; ++curRank) {
 				MPI_Request curReq;
-				MPI_Isend(&(board[0][0]), boardSize*boardSize, MPI_INT, curRank, 0, MPI_COMM_WORLD, &curReq);
+				MPI_Isend(&(iBoard[0][0]), boardSize*boardSize, MPI_INT, curRank, 0, MPI_COMM_WORLD, &curReq);
 			}
 
 			// now recurse as normal
