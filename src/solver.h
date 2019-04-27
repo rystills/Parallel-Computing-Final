@@ -448,9 +448,13 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues, int*** boardC
 		//skip boards that have already been explored
 		copyPossibilitiesToBoard(iBoard, possibleValues);
 		if (!boardInBoardCopies(iBoard, boardCopies)) {
+			// send board to all other ranks
+			for (int curRank = 0; curRank < numRanks; ++curRank) {
+				MPI_Request curReq;
+				MPI_Isend(&(board[0][0]), boardSize*boardSize, MPI_INT, curRank, 0, MPI_COMM_WORLD, &curReq);
+			}
 
-			//TODO: send board to all other ranks
-
+			// now recurse as normal
 			if (parallelCPSolverInternal(iBoard, possibleValues, boardCopies)) {
 				dealloc_3d_int(boardSize, possibleValuesCopy);
 				return true;
