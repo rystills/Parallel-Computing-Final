@@ -12,6 +12,8 @@ bool cellIsValid(int row, int col, int** iBoard);
 int boardIsFilled(int** iBoard);
 int ***alloc_3d_int(int x, int y, int z);
 void dealloc_3d_int(int x, int ***arr);
+const int maxBoards = 10000;  // statically allocated for performance purposes; please raise for large search space
+int numBoards = 0;
 
 /**
  * core recursive internal function for serial brute force solver; recursively fills in cell values
@@ -331,12 +333,34 @@ bool serialCPSolver(int** iBoard) {
 }
 
 /**
+ * check if the specified board exists in the board copy array
+ * @param iBoard: the board whose presence we wish to check for
+ * @param boardCopies: the array of boards we wish to search
+ * @returns: whether a board matching iBoard eexists in boardCopies (true) or not (false)
+ */
+bool boardInBoardCopies(int** iBoard, int*** boardCopies) {
+	for (int bn = 0; bn < numBoards; ++bn) {
+		for (int i = 0; i < boardSize; ++i) {
+			for (int r = 0; r < boardSize; ++r) {
+				if (iBoard[i][r] != boardCopies[bn][i][r]) {
+					goto increment;
+				}
+			}
+		}
+		return true;
+		increment:;
+	}
+	return false;
+}
+
+/**
  * core recursive internal function for parallel constraint propagation solver; recursion branches each time CP can't reduce any further.
  * @param iBoard: 2d array containing the board data
  * @param possibleValues: the full possibleValues array
+ * @param boardCopies: array containing subtrees that have already been recursed by another thread
  * @returns: whether this branch led to a solution (true) or not (false)
  */
-bool parallelCPSolverInternal(int** iBoard, int*** possibleValues) {
+bool parallelCPSolverInternal(int** iBoard, int*** possibleValues, int*** boardCopies) {
 	// run constraint propagation until each cell has only 0-1 possiblities remaining, or until no new singletons may be created with CP
 	bool createdNewSingleton = true;
 	while (createdNewSingleton && possibilitiesRemain(possibleValues)) {
@@ -419,7 +443,7 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues) {
 	for (int i = 0; i < fewestPossibilities; ++i) {
 		possibleValues[fewestRow][fewestCol][0] = possibleValuesCopy[fewestRow][fewestCol][i];
 		possibleValues[fewestRow][fewestCol][1] = 0;
-		if (parallelCPSolverInternal(iBoard, possibleValues)) {
+		if (parallelCPSolverInternal(iBoard, possibleValues, boardCopies)) {
 			dealloc_3d_int(boardSize, possibleValuesCopy);
 			return true;
 		}
@@ -455,8 +479,12 @@ bool parallelCPSolver(int** iBoard) {
 		}
 	}
 
+	int*** boardCopies = alloc_3d_int(maxBoards, boardSize, boardSize);
+
 	// run the core recursive CP solver method
-	parallelCPSolverInternal(iBoard, possibleValues);
+	parallelCPSolverInternal(iBoard, possibleValues, boardCopies);
+
+	dealloc_3d_int(maxBoards, boardCopies);
 
 	// apply resulting values to iBoard
 	copyPossibilitiesToBoard(iBoard, possibleValues);
