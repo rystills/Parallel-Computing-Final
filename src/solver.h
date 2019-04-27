@@ -436,7 +436,16 @@ bool parallelCPSolverInternal(int** iBoard, int*** possibleValues, int*** boardC
 			}
 		}
 	}
-	//TODO: check async receive boards from all other ranks
+
+	//check if we received a board asynchronously from any other rank
+	int flag = 0;
+	MPI_Status status;
+	MPI_Iprobe(MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&flag,&status);
+	if (flag) {
+		// we're ready to receive a board; load it in and add it to our board list
+		MPI_Recv(&(boardCopies[numBoards++][0][0]), boardSize*boardSize, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status );
+
+	}
 
 	// copy the full possibilities list as we might have to undo future decisions if this branch is unsuccessful
 	int*** possibleValuesCopy = alloc_3d_int(boardSize,boardSize,boardSize);
