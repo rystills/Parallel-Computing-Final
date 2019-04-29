@@ -330,6 +330,7 @@ bool serialCPSolver(int** iBoard) {
 
 	// apply resulting values to iBoard
 	copyPossibilitiesToBoard(iBoard, possibleValues);
+	dealloc_3d_int(boardSize,possibleValues);
 	return true;
 }
 
@@ -515,5 +516,6 @@ bool parallelCPSolver(int** iBoard) {
 
 	// apply resulting values to iBoard
 	copyPossibilitiesToBoard(iBoard, possibleValues);
+	dealloc_3d_int(boardSize,possibleValues);
 	return true;
 }
